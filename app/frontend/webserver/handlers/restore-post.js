@@ -45,11 +45,26 @@ const handleRestorePost = async (funcLogger, app) => {
     const filepath = path.join('/tmp', `${randomName}`);
     await archive.mv(filepath);
 
+    if (!/^[a-zA-Z0-9.-]+$/.test(host)) {
+      logger.error('Detected invalid characters in mongo.host');
+      return res.send({
+        success: false,
+        status: 400,
+        message: 'Invalid database configuration',
+        data: {}
+      });
+    }
+    
+    if (!/^\d+$/.test(port)) {
+      return res.send({ success: false, status: 400, message: 'Invalid port configuration' });
+    }
+    
     // Execute the restore script
     const result = await new Promise(resolve => {
       execFile(
-        `${process.cwd()}/scripts/restore.sh`,
-        [config.get('mongo.host'), config.get('mongo.port'), filepath],
+        path.join(process.cwd(), 'scripts', 'restore.sh'), 
+        [host, port, filepath],
+        { shell: false }, 
         (error, stdout, stderr) => {
           if (error) {
             resolve({ code: 1, stdout, stderr, error });
